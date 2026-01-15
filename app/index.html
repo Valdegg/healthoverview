@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health Evaluation</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-mode="entry">
+  <div class="container">
+    <header>
+      <h1>Health Evaluation</h1>
+      <p class="subtitle">Foundations of Health — Point-in-time Observation</p>
+      
+      <!-- Mode Toggle -->
+      <div class="mode-toggle">
+        <button class="mode-btn active" data-mode="entry">Entry</button>
+        <button class="mode-btn" data-mode="review">Review</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Person info -->
+      <section class="person-info">
+        <h2>Person</h2>
+        <div class="form-row">
+          <label>
+            <span>Name / ID</span>
+            <input type="text" id="person-name" placeholder="Optional identifier">
+          </label>
+          <label>
+            <span>Age</span>
+            <input type="number" id="person-age" min="18" max="120" placeholder="Years">
+          </label>
+          <label>
+            <span>Sex</span>
+            <select id="person-sex">
+              <option value="">Select</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <!-- Summary stats -->
+      <section class="summary-section">
+        <div id="summary-stats" class="summary-stats">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Systems container (Entry or Review mode) -->
+      <div id="systems-container"></div>
+
+      <!-- Doctor notes -->
+      <section class="notes-section">
+        <h2>Observations</h2>
+        <textarea id="doctor-notes" placeholder="Doctor notes and clinical observations..."></textarea>
+      </section>
+
+      <!-- Save Status -->
+      <section class="save-status-section">
+        <div class="save-status">
+          <span class="save-indicator" id="save-indicator">●</span>
+          <span id="save-status-text">Auto-saving</span>
+        </div>
+        <div class="saved-evaluations">
+          <button id="btn-show-saved" class="btn btn-text">Saved evaluations</button>
+        </div>
+      </section>
+
+      <!-- Saved Evaluations Modal (hidden by default) -->
+      <div id="saved-evaluations-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Saved Evaluations</h3>
+            <button class="modal-close" id="btn-close-modal">×</button>
+          </div>
+          <div class="modal-body" id="saved-evaluations-list">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <section class="actions">
+        <div class="actions-left">
+          <button id="btn-clear" class="btn btn-text">Clear All</button>
+        </div>
+        <div class="actions-right">
+          <button id="btn-generate-report" class="btn btn-primary">Generate Report</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>This is a point-in-time observation, not a diagnostic tool.</p>
+    </footer>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
