@@ -87,30 +87,52 @@ import { getReferenceStatus, getRangeDisplayText, REFERENCE_RANGES } from './ref
 
 
 // ============================================
-// Storage Keys
+// API Configuration
 // ============================================
 
-const STORAGE_PREFIX = 'health-eval-';
+const API_BASE = '/api';
 const CURRENT_KEY = 'health-eval-current';
 
 /**
- * Generate a storage key from person info
+ * Generate filename from person info
  */
-export function getPersonKey(name, age, sex) {
-  const namePart = (name || 'unnamed').toLowerCase().replace(/\s+/g, '-').substring(0, 20);
-  const agePart = age || 'unknown';
-  const sexPart = (sex || 'unknown').substring(0, 1);
-  return `${STORAGE_PREFIX}${namePart}-${agePart}-${sexPart}`;
+export function getEvalFilename(name, age, sex) {
+  const namePart = (name || 'unnamed').toLowerCase().replace(/[^a-z0-9-]/g, '-').substring(0, 50);
+  const sexPart = (sex || 'unknown').substring(0, 1).toLowerCase();
+  return `${namePart}_${age}_${sexPart}`;
 }
 
 /**
- * List all saved evaluations
+ * List all saved evaluations from server
  */
-export function listSavedEvaluations() {
+export async function listSavedEvaluations() {
+  try {
+    const response = await fetch(`${API_BASE}/evaluations`);
+    if (!response.ok) throw new Error('Failed to fetch');
+    const data = await response.json();
+    return data.map(ev => ({
+      key: ev.filename,
+      name: ev.name || 'Unnamed',
+      age: ev.age,
+      sex: ev.sex,
+      measurementCount: ev.measurement_count,
+      updatedAt: ev.updated_at
+    }));
+  } catch (e) {
+    console.error('Failed to list evaluations:', e);
+    // Fallback to localStorage
+    return listSavedEvaluationsLocal();
+  }
+}
+
+/**
+ * Fallback: List from localStorage
+ */
+function listSavedEvaluationsLocal() {
   const evaluations = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith(STORAGE_PREFIX) && key !== CURRENT_KEY) {
+    if (key && key.startsWith('health-eval-') && key !== CURRENT_KEY) {
       try {
         const data = JSON.parse(localStorage.getItem(key));
         if (data && data.id) {
@@ -123,34 +145,38 @@ export function listSavedEvaluations() {
             updatedAt: data.updated_at
           });
         }
-      } catch (e) {
-        // Skip invalid entries
-      }
+      } catch (e) {}
     }
   }
-  // Sort by most recently updated
   return evaluations.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 }
 
 /**
- * Load a specific evaluation by key
+ * Load a specific evaluation by filename from server
  */
-export function loadEvaluationByKey(key) {
+export async function loadEvaluationByKey(key) {
   try {
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      return JSON.parse(saved);
-    }
+    const response = await fetch(`${API_BASE}/evaluations/${key}`);
+    if (!response.ok) throw new Error('Not found');
+    return await response.json();
   } catch (e) {
     console.error('Failed to load evaluation:', e);
+    // Fallback to localStorage
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : null;
   }
-  return null;
 }
 
 /**
- * Delete a saved evaluation
+ * Delete a saved evaluation from server
  */
-export function deleteEvaluationByKey(key) {
+export async function deleteEvaluationByKey(key) {
+  try {
+    await fetch(`${API_BASE}/evaluations/${key}`, { method: 'DELETE' });
+  } catch (e) {
+    console.error('Failed to delete:', e);
+  }
+  // Also remove from localStorage
   localStorage.removeItem(key);
 }
 
@@ -390,28 +416,44 @@ function computeOverallSummary(systems) {
 // ============================================
 
 /**
- * Save evaluation to localStorage
+ * Save evaluation to server and localStorage
  */
 export function saveEvaluation(evaluation) {
+  // Always save to localStorage as cache
   try {
-    // Always save to current key
     localStorage.setItem(CURRENT_KEY, JSON.stringify(evaluation));
-    
-    // Also save to person-specific key if we have person info
-    if (evaluation.person_name || evaluation.person_age) {
-      const personKey = getPersonKey(
-        evaluation.person_name, 
-        evaluation.person_age, 
-        evaluation.person_sex
-      );
-      localStorage.setItem(personKey, JSON.stringify(evaluation));
-    }
-    
-    return true;
   } catch (e) {
-    console.error('Failed to save evaluation:', e);
-    return false;
+    console.error('Failed to save to localStorage:', e);
   }
+  
+  // Save to server if we have person info
+  if (evaluation.person_age) {
+    saveToServer(evaluation);
+  }
+  
+  return true;
+}
+
+/**
+ * Save to server (async, fire-and-forget with debounce)
+ */
+let saveTimeout = null;
+function saveToServer(evaluation) {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  
+  saveTimeout = setTimeout(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/evaluations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(evaluation)
+      });
+      if (!response.ok) throw new Error('Save failed');
+      console.log('Saved to server');
+    } catch (e) {
+      console.error('Failed to save to server:', e);
+    }
+  }, 500); // Debounce 500ms
 }
 
 /**

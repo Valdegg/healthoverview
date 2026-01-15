@@ -548,13 +548,17 @@ function triggerAutoSave() {
   }, 300);
 }
 
-function showSavedEvaluationsModal() {
+async function showSavedEvaluationsModal() {
   const modal = document.getElementById('saved-evaluations-modal');
   const list = document.getElementById('saved-evaluations-list');
   
   if (!modal || !list) return;
   
-  const saved = listSavedEvaluations();
+  // Show loading state
+  list.innerHTML = '<p class="no-saved">Loading...</p>';
+  modal.style.display = 'flex';
+  
+  const saved = await listSavedEvaluations();
   
   if (saved.length === 0) {
     list.innerHTML = '<p class="no-saved">No saved evaluations yet.</p>';
@@ -581,8 +585,6 @@ function showSavedEvaluationsModal() {
       btn.addEventListener('click', () => deleteSavedEvaluation(btn.dataset.key));
     });
   }
-  
-  modal.style.display = 'flex';
 }
 
 function hideSavedEvaluationsModal() {
@@ -590,8 +592,8 @@ function hideSavedEvaluationsModal() {
   if (modal) modal.style.display = 'none';
 }
 
-function loadSavedEvaluation(key) {
-  const loaded = loadEvaluationByKey(key);
+async function loadSavedEvaluation(key) {
+  const loaded = await loadEvaluationByKey(key);
   if (!loaded) {
     alert('Could not load evaluation');
     return;
@@ -605,10 +607,10 @@ function loadSavedEvaluation(key) {
   hideSavedEvaluationsModal();
 }
 
-function deleteSavedEvaluation(key) {
+async function deleteSavedEvaluation(key) {
   if (!confirm('Delete this saved evaluation?')) return;
-  deleteEvaluationByKey(key);
-  showSavedEvaluationsModal(); // Refresh list
+  await deleteEvaluationByKey(key);
+  await showSavedEvaluationsModal(); // Refresh list
 }
 
 function updateFileStatus() {
