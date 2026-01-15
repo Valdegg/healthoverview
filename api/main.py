@@ -25,9 +25,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Data directory
-DATA_DIR = Path(__file__).parent / "data"
+# Data directory - use absolute path
+DATA_DIR = Path("/Users/valdimareggertsson/health-observation/api/data")
 DATA_DIR.mkdir(exist_ok=True)
+print(f"Data directory: {DATA_DIR}")
 
 
 def sanitize_filename(name: str) -> str:
